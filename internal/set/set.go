@@ -23,13 +23,20 @@ package set
 // Intersection returns the intersection of two sets.
 func Intersection(a []string, b []string) (out []string) {
 
-	hash := make(map[string]bool)
-
-	for _, v := range a {
-		hash[v] = true
+	small, large := a, b
+	if len(small) > len(large) {
+		small, large = large, small
 	}
 
-	for _, v := range b {
+	hash := make(map[string]struct{}, len(small))
+	out = make([]string, 0, len(small))
+
+	for _, v := range small {
+		hash[v] = struct{}{}
+	}
+
+	// Iterate through large set, adding items found in small set.
+	for _, v := range large {
 		if _, found := hash[v]; found {
 			out = append(out, v)
 		}
@@ -42,20 +49,24 @@ func Intersection(a []string, b []string) (out []string) {
 // Union returns the union of two sets.
 func Union(a []string, b []string) (out []string) {
 
-	hash := make(map[string]bool)
-
-	// collect all values from input args
-	for _, v := range a {
-		hash[v] = true
+	small, large := a, b
+	if len(small) > len(large) {
+		small, large = large, small
 	}
 
-	for _, v := range b {
-		hash[v] = true
+	hash := make(map[string]struct{}, len(small))
+	out = make([]string, 0, len(small)+len(large))
+
+	for _, v := range small {
+		hash[v] = struct{}{}
 	}
 
-	// put values into string array
-	for k := range hash {
-		out = append(out, k)
+	// Iterate through large set, adding items not found in small set.
+	out = append(out, small...)
+	for _, v := range large {
+		if _, found := hash[v]; !found {
+			out = append(out, v)
+		}
 	}
 
 	return out
@@ -66,23 +77,17 @@ func Union(a []string, b []string) (out []string) {
 // second (set 'a' - set 'b')
 func Difference(a []string, b []string) (out []string) {
 
-	hash := make(map[string]bool)
-	out = append([]string{}, a...)
+	hash := make(map[string]struct{}, len(b))
+	out = make([]string, 0, len(a))
 
 	for _, v := range b {
-		hash[v] = true
+		hash[v] = struct{}{}
 	}
 
-	// Iterate through output, removing items found in b
-	for i := 0; i < len(out); {
-		if _, found := hash[out[i]]; found {
-			// Remove this element by moving the copying the last element of the
-			// array to this index and then slicing off the last element.
-			// https://stackoverflow.com/a/37335777/3113674
-			out[i] = out[len(out)-1]
-			out = out[:len(out)-1]
-		} else {
-			i++
+	// Iterate through a, adding items not found in b.
+	for _, v := range a {
+		if _, found := hash[v]; !found {
+			out = append(out, v)
 		}
 	}
 
