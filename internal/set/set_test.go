@@ -21,8 +21,11 @@ package set
 import (
 	"flag"
 	"fmt"
+	"math/rand"
 	"os"
 	"testing"
+
+	"github.com/rs/xid"
 )
 
 var (
@@ -82,5 +85,80 @@ func testStringOperation(thisFunc stringOperation, in1 []string, in2 []string, o
 			}
 
 		}
+	}
+}
+
+func makeBenchmarkData(total, size1, size2 int) ([]string, []string) {
+	r := rand.New(rand.NewSource(1))
+
+	ids := make([]string, 0, total)
+	for i := 0; i < total; i++ {
+		ids = append(ids, xid.New().String())
+	}
+
+	b1 := append([]string{}, ids[:size1]...)
+	r.Shuffle(len(b1), func(i, j int) {
+		b1[i], b1[j] = b1[j], b1[i]
+	})
+
+	b2 := append([]string{}, ids[size2:]...)
+	r.Shuffle(len(b2), func(i, j int) {
+		b2[i], b2[j] = b2[j], b2[i]
+	})
+
+	return b1, b2
+}
+
+func BenchmarkSet(b *testing.B) {
+	s1, s2 := makeBenchmarkData(700, 500, 300)
+	m1, m2 := makeBenchmarkData(7000, 5000, 3000)
+	l1, l2 := makeBenchmarkData(70000, 50000, 30000)
+
+	tbl := []struct {
+		name string
+		b1   []string
+		b2   []string
+	}{
+		{
+			name: "tiny",
+			b1:   a1[:],
+			b2:   a2[:],
+		},
+		{
+			name: "small",
+			b1:   s1,
+			b2:   s2,
+		},
+		{
+			name: "medium",
+			b1:   m1,
+			b2:   m2,
+		},
+		{
+			name: "large",
+			b1:   l1,
+			b2:   l2,
+		},
+	}
+
+	for _, v := range tbl {
+		b.Run(fmt.Sprintf("Difference %s", v.name), func(b *testing.B) {
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				Difference(v.b1, v.b2)
+			}
+		})
+		b.Run(fmt.Sprintf("Union %s", v.name), func(b *testing.B) {
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				Union(v.b1, v.b2)
+			}
+		})
+		b.Run(fmt.Sprintf("Intersection %s", v.name), func(b *testing.B) {
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				Intersection(v.b1, v.b2)
+			}
+		})
 	}
 }
